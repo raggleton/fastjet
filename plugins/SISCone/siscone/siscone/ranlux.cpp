@@ -55,13 +55,8 @@ typedef struct {
 
 // internal generator state
 //--------------------------
-//CMS change: separate ranlux for each thread.
-// Change not endorsed by fastjet collaboration
-#if __cplusplus >= 201103L
-static thread_local ranlux_state_t local_ranlux_state;
-#else
-static ranlux_state_t local_ranlux_state;
-#endif
+ranlux_state_t local_ranlux_state;
+
 
 // incrementation of the generator state
 //---------------------------------------

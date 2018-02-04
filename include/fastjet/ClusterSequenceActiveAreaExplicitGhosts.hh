@@ -1,5 +1,5 @@
 //FJSTARTHEADER
-// $Id: ClusterSequenceActiveAreaExplicitGhosts.hh 3433 2014-07-23 08:17:03Z salam $
+// $Id: ClusterSequenceActiveAreaExplicitGhosts.hh 4047 2016-03-03 13:21:49Z soyez $
 //
 // Copyright (c) 2005-2014, Matteo Cacciari, Gavin P. Salam and Gregory Soyez
 //
@@ -96,16 +96,16 @@ public:
   unsigned int n_hard_particles() const;
 
   /// returns the area of a jet
-  virtual double area (const PseudoJet & jet) const;
+  virtual double area (const PseudoJet & jet) const FASTJET_OVERRIDE;
 
   /// returns a four vector corresponding to the sum (E-scheme) of the
   /// ghost four-vectors composing the jet area, normalised such that
   /// for a small contiguous area the p_t of the extended_area jet is
   /// equal to area of the jet.
-  virtual PseudoJet area_4vector (const PseudoJet & jet) const;
+  virtual PseudoJet area_4vector (const PseudoJet & jet) const FASTJET_OVERRIDE;
 
   /// true if a jet is made exclusively of ghosts
-  virtual bool is_pure_ghost(const PseudoJet & jet) const;
+  virtual bool is_pure_ghost(const PseudoJet & jet) const FASTJET_OVERRIDE;
 
   /// true if the entry in the history index corresponds to a
   /// ghost; if hist_ix does not correspond to an actual particle
@@ -113,13 +113,13 @@ public:
   bool is_pure_ghost(int history_index) const;
 
   /// this class does have explicit ghosts
-  virtual bool has_explicit_ghosts() const {return true;}
+  virtual bool has_explicit_ghosts() const FASTJET_OVERRIDE {return true;}
 
   /// return the total area, corresponding to a given Selector, that
   /// consists of unclustered ghosts
   ///
   /// The selector needs to apply jet by jet
-  virtual double empty_area(const Selector & selector) const;
+  virtual double empty_area(const Selector & selector) const FASTJET_OVERRIDE;
 
   /// returns the total area under study
   double total_area () const;
@@ -206,17 +206,14 @@ template<class L> void ClusterSequenceActiveAreaExplicitGhosts::_initialise
     _add_ghosts(*ghosts, ghost_area);
   }
 
-
-//CMS change: Comment this out for thread safety
-//   Change not endorsed by fastjet collaboration
-  // if (writeout_combinations) {
-  //   std::cout << "# Printing particles including ghosts\n";
-  //   for (unsigned j = 0; j < _jets.size(); j++) {
-  //     printf("%5u %20.13f %20.13f %20.13e\n",
-  // 	       j,_jets[j].rap(),_jets[j].phi_02pi(),_jets[j].kt2());
-  //   }
-  //   std::cout << "# Finished printing particles including ghosts\n";
-  // }
+  if (writeout_combinations) {
+    std::cout << "# Printing particles including ghosts\n";
+    for (unsigned j = 0; j < _jets.size(); j++) {
+      printf("%5u %20.13f %20.13f %20.13e\n",
+	       j,_jets[j].rap(),_jets[j].phi_02pi(),_jets[j].kt2());
+    }
+    std::cout << "# Finished printing particles including ghosts\n";
+  }
 
   // this will ensure that we can still point to jets without
   // difficulties arising!

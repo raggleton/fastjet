@@ -23,8 +23,8 @@
 // along with this program; if not, write to the Free Software               //
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA //
 //                                                                           //
-// $Revision:: 268                                                          $//
-// $Date:: 2009-03-12 21:24:16 +0100 (Thu, 12 Mar 2009)                     $//
+// $Revision:: 378                                                          $//
+// $Date:: 2016-02-24 15:10:38 +0100 (Wed, 24 Feb 2016)                     $//
 ///////////////////////////////////////////////////////////////////////////////
 
 #ifndef __SPH_GEOM_2D_H__
@@ -78,12 +78,13 @@ public:
   unsigned int phi_range;     
 
   /// extremal value for theta
-  const static double theta_min;  ///< minimal value for theta (set to 0)
-  const static double theta_max;  ///< maximal value for theta (set to pi)
+  static double theta_min;  ///< minimal value for theta (set to 0)
+  static double theta_max;  ///< maximal value for theta (set to pi)
 
 private:
-  /// return the cell index corrsponding to an theta value
+  /// return the cell index corrsponding to a theta value
   inline unsigned int get_theta_cell(double theta){
+    if (theta>=theta_max) return 1<<31;
     return (unsigned int) (1 << ((int) (32*((theta-theta_min)/(theta_max-theta_min)))));
   }
 

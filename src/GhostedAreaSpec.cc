@@ -32,21 +32,13 @@
 #include "fastjet/Error.hh"
 #include<iostream>
 #include<sstream>
-#if __cplusplus >= 201103L
-#include <thread>
-#endif
 
 using namespace std;
 
 FASTJET_BEGIN_NAMESPACE      // defined in fastjet/internal/base.hh
 
-//CMS change: separate generators for each thread.
-// Not endorsed by fastjet collaboration
-#if __cplusplus >= 201103L
-static thread_local BasicRandom<double> _random_generator;
-#else
-static BasicRandom<double> _random_generator;
-#endif
+BasicRandom<double> GhostedAreaSpec::_random_generator;
+LimitedWarning GhostedAreaSpec::_warn_fj2_placement_deprecated;
 
 /// explicit constructor
 GhostedAreaSpec::GhostedAreaSpec(
@@ -85,6 +77,7 @@ GhostedAreaSpec::GhostedAreaSpec(
 // sets fj2 ghost placement
 void GhostedAreaSpec::set_fj2_placement(bool val) {
   _fj2_placement  = val; _initialize();
+  if (val) _warn_fj2_placement_deprecated.warn("FJ2 placement of ghosts can lead to systematic edge effects in area evaluation and is deprecated. Prefer new (default) FJ3 placement.");
 }
 
 //======================================================================
@@ -182,23 +175,6 @@ string GhostedAreaSpec::description() const {
        << ", n repetitions of ghost distributions =  " << repeat();
   return ostr.str();
 }
-
- void GhostedAreaSpec::get_random_status(std::vector<int> & __iseed) const {
-  _random_generator.get_status(__iseed);
-}
-
- void GhostedAreaSpec::set_random_status(const std::vector<int> & __iseed) {
-  _random_generator.set_status(__iseed);
-}
-
-BasicRandom<double> & GhostedAreaSpec::generator_at_own_risk() const {
-  return _random_generator;
-}
-
-double GhostedAreaSpec::_our_rand() const {
-  return _random_generator();
-}
-
 
 FASTJET_END_NAMESPACE
 

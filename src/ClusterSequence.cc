@@ -1,5 +1,5 @@
 //FJSTARTHEADER
-// $Id: ClusterSequence.cc 3685 2014-09-11 20:15:00Z salam $
+// $Id: ClusterSequence.cc 4154 2016-07-20 16:20:48Z soyez $
 //
 // Copyright (c) 2005-2014, Matteo Cacciari, Gavin P. Salam and Gregory Soyez
 //
@@ -47,12 +47,6 @@
 #include<cassert>
 #include<string>
 #include<set>
-
-//CMS change: 
-// Change not endorsed by fastjet collaboration
-#if __cplusplus >= 201103L
-#include <atomic>
-#endif
 
 FASTJET_BEGIN_NAMESPACE      // defined in fastjet/internal/base.hh
 
@@ -141,8 +135,6 @@ FASTJET_BEGIN_NAMESPACE      // defined in fastjet/internal/base.hh
 using namespace std;
 
 
-//CMS change: use std::atomic for thread safety.
-//   Change not endorsed by fastjet collaboration
 // The following variable can be modified from within user code
 // so as to redirect banners to an ostream other than cout.
 //
@@ -152,20 +144,15 @@ using namespace std;
 // by default. This requirement reflects the spirit of
 // clause 2c of the GNU Public License (v2), under which
 // FastJet and its plugins are distributed.
-
-#if __cplusplus >= 201103L
-static std::atomic<std::ostream*> _fastjet_banner_ostr{nullptr};
-#else
-static std::ostream* _fastjet_banner_ostr = 0;
-#endif
+std::ostream * ClusterSequence::_fastjet_banner_ostr = &cout;
 
 
 // destructor that guarantees proper bookkeeping for the CS Structure
 ClusterSequence::~ClusterSequence () {
   // set the pointer in the wrapper to this object to NULL to say that
   // we're going out of scope
-  if (_structure_shared_ptr()){
-    ClusterSequenceStructure* csi = dynamic_cast<ClusterSequenceStructure*>(_structure_shared_ptr()); 
+  if (_structure_shared_ptr){
+    ClusterSequenceStructure* csi = dynamic_cast<ClusterSequenceStructure*>(_structure_shared_ptr.get()); 
     // normally the csi is purely internal so it really should not be
     // NULL i.e assert should be OK
     // (we assert rather than throw an error, since failure here is a
@@ -384,8 +371,8 @@ void ClusterSequence::_initialise_and_run_no_decant () {
     tiling.run();
     _plugin_activated = false;
 
-#ifndef __FJCORE__
   } else if (_strategy == N2MHTLazy9AntiKtSeparateGhosts) {
+#ifndef __FJCORE__
     // attempt to use an external tiling routine -- it manipulates
     // the CS history via the plugin mechanism
     _plugin_activated = true;
@@ -420,18 +407,8 @@ void ClusterSequence::_initialise_and_run_no_decant () {
 
 
 // these needs to be defined outside the class definition.
-
-//CMS change: use std::atomic for thread safety.
-//   Change not endorsed by fastjet collaboration
-#if __cplusplus >= 201103L
-static std::atomic<bool> _first_time{true};
-static std::atomic<int> _n_exclusive_warnings{0};
-#else
-static bool _first_time =true;
-static int _n_exclusive_warnings =0;
-#endif
-LimitedWarning ClusterSequence::_exclusive_warnings(0);
-LimitedWarning ClusterSequence::_changed_strategy_warning(0);
+bool ClusterSequence::_first_time = true;
+LimitedWarning ClusterSequence::_exclusive_warnings;
 
 
 //----------------------------------------------------------------------
@@ -440,22 +417,13 @@ string fastjet_version_string() {
   return "FastJet version "+string(fastjet_version);
 }
 
-//CMS change: function definition no longer in header
-//   Change not endorsed by fastjet collaboration
-void ClusterSequence::set_fastjet_banner_stream(std::ostream * ostr) {_fastjet_banner_ostr = ostr;}
-std::ostream * ClusterSequence::fastjet_banner_stream() {return _fastjet_banner_ostr;}
 
 //----------------------------------------------------------------------
 // prints a banner on the first call
 void ClusterSequence::print_banner() {
 
-#if __cplusplus >= 201103L
-  bool expected = true;
-  if (! _first_time.compare_exchange_strong(expected,false)) return;
-#else
-  if (! _first_time) return;
+  if (!_first_time) {return;}
   _first_time = false;
-#endif
 
   // make sure the user has not set the banner stream to NULL
   ostream * ostr = _fastjet_banner_ostr;
@@ -500,6 +468,8 @@ void ClusterSequence::_decant_options(const JetDefinition & jet_def_in,
 // transfer all relevant info into internal variables
 void ClusterSequence::_decant_options_partial() {
   // let the user know what's going on
+  print_banner();
+  
   _jet_algorithm = _jet_def.jet_algorithm();
   _Rparam = _jet_def.R();  _R2 = _Rparam*_Rparam; _invR2 = 1.0/_R2;
   _strategy = _jet_def.strategy();
@@ -753,8 +723,11 @@ Strategy ClusterSequence::_best_strategy() const {
     }
   }
   
-  bool code_should_never_reach_here = false;
-  assert(code_should_never_reach_here); 
+  //bool code_should_never_reach_here = false;
+  //assert(code_should_never_reach_here);
+
+  assert(0 && "Code should never reach here");
+
   return N2MHTLazy9;
 
 }
@@ -804,6 +777,15 @@ Strategy ClusterSequence::_best_strategy() const {
 // }
 
 
+ClusterSequence & ClusterSequence::operator=(const ClusterSequence & cs) {
+  // self assignment is trivial
+  if (&cs != this) {
+    _deletes_self_when_unused = false;
+    transfer_from_sequence(cs);
+  }
+  return *this;
+}
+
 //----------------------------------------------------------------------
 // transfer the sequence contained in other_seq into our own;
 // any plugin "extras" contained in the from_seq will be lost
@@ -844,7 +826,7 @@ void ClusterSequence::transfer_from_sequence(const ClusterSequence & from_seq,
   _extras   = from_seq._extras;
 
   // clean up existing structure
-  if (_structure_shared_ptr()) {
+  if (_structure_shared_ptr) {
     // If there are jets associated with an old version of the CS and
     // a new one, keeping track of when to delete the CS becomes more
     // complex; so we don't allow this situation to occur.
@@ -852,7 +834,7 @@ void ClusterSequence::transfer_from_sequence(const ClusterSequence & from_seq,
     
     // anything that is currently associated with the cluster sequence
     // should be told that its cluster sequence no longer exists
-    ClusterSequenceStructure* csi = dynamic_cast<ClusterSequenceStructure*>(_structure_shared_ptr()); 
+    ClusterSequenceStructure* csi = dynamic_cast<ClusterSequenceStructure*>(_structure_shared_ptr.get()); 
     assert(csi != NULL);
     csi->set_associated_cs(NULL);
   }
@@ -1484,7 +1466,8 @@ void ClusterSequence::add_constituents (
 //----------------------------------------------------------------------
 // initialise the history in a standard way
 void ClusterSequence::_add_step_to_history (
-	       const int step_number, const int parent1, 
+               //NO_LONGER_USED: const int step_number,
+               const int parent1, 
 	       const int parent2, const int jetp_index,
 	       const double dij) {
 
@@ -1498,16 +1481,17 @@ void ClusterSequence::_add_step_to_history (
   _history.push_back(element);
 
   int local_step = _history.size()-1;
-  assert(local_step == step_number);
+  //#ifndef __NO_ASSERTS__
+  //assert(local_step == step_number);
+  //#endif
 
-  //----- Copy of fix from fastjet authors fastjet-3.1.2-devel-20150224-rev3823.tar
   // sanity check: make sure the particles have not already been recombined
   //
   // Note that good practice would make this an assert (since this is
   // a serious internal issue). However, we decided to throw an
   // InternalError so that the end user can decide to catch it and
   // retry the clustering with a different strategy.
- 
+
   assert(parent1 >= 0);
   if (_history[parent1].child != Invalid){
     throw InternalError("trying to recomine an object that has previsously been recombined");
@@ -1519,7 +1503,7 @@ void ClusterSequence::_add_step_to_history (
     }
     _history[parent2].child = local_step;
   }
-  
+
   // get cross-referencing right from PseudoJets
   if (jetp_index != Invalid) {
     assert(jetp_index >= 0);
@@ -1699,8 +1683,12 @@ void ClusterSequence::_do_ij_recombination_step(
   int hist_i = _jets[jet_i].cluster_hist_index();
   int hist_j = _jets[jet_j].cluster_hist_index();
 
-  _add_step_to_history(newstep_k, min(hist_i, hist_j), max(hist_i,hist_j),
+  _add_step_to_history(min(hist_i, hist_j), max(hist_i,hist_j),
 		       newjet_k, dij);
+
+  //  _add_step_to_history(newstep_k, min(hist_i, hist_j), max(hist_i,hist_j),
+  //		       newjet_k, dij);
+
 
 }
 
@@ -1710,14 +1698,21 @@ void ClusterSequence::_do_ij_recombination_step(
 /// jet_i with the beam
 void ClusterSequence::_do_iB_recombination_step(
 				  const int jet_i, const double diB) {
-  // get history index
-  int newstep_k = _history.size();
-
   // recombine the jet with the beam
-  _add_step_to_history(newstep_k,_jets[jet_i].cluster_hist_index(),BeamJet,
+  _add_step_to_history(_jets[jet_i].cluster_hist_index(),BeamJet,
 		       Invalid, diB);
 
+  // // get history index
+  // int newstep_k = _history.size();
+  // 
+  // _add_step_to_history(newstep_k,_jets[jet_i].cluster_hist_index(),BeamJet,
+  //         	       Invalid, diB);
+
 }
+
+
+// make sure the static member _changed_strategy_warning is defined. 
+LimitedWarning ClusterSequence::_changed_strategy_warning;
 
 
 //----------------------------------------------------------------------

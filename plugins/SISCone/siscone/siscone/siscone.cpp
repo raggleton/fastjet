@@ -20,18 +20,11 @@
 // along with this program; if not, write to the Free Software               //
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA //
 //                                                                           //
-// $Revision:: 371                                                          $//
-// $Date:: 2014-09-09 10:05:32 +0200 (Tue, 09 Sep 2014)                     $//
+// $Revision:: 403                                                          $//
+// $Date:: 2016-05-19 16:52:05 +0200 (Thu, 19 May 2016)                     $//
 ///////////////////////////////////////////////////////////////////////////////
 
-//#ifdef HAVE_CONFIG_H
 #include "config.h"
-//#else
-//#define PACKAGE_NAME "SISCone"
-//#define VERSION "3.0.0"
-//#warning "No config.h file available, using preset values"
-//#endif
-
 #include "ranlux.h"
 #include "momentum.h"
 #include "defines.h"
@@ -65,15 +58,8 @@ Csiscone::~Csiscone(){
   rerun_allowed = false;
 }
 
-
-//CMS change: separate generators for each thread.
-// Change not endorsed by fastjet collaboration
-#if __cplusplus >= 201103L
-static thread_local bool init_done=false;
-#else
-static bool init_done=false;
-#endif
-std::ostream* Csiscone::_banner_ostr = 0;
+bool Csiscone::init_done=false;
+std::ostream* Csiscone::_banner_ostr = &cout;
 
 /*
  * compute the jets from a given particle set doing multiple passes
@@ -250,31 +236,34 @@ int Csiscone::recompute_jets(double _f, double _ptmin,
 // ensure things are initialised
 void Csiscone::_initialise_if_needed(){
   // initialise random number generator
-  if (!init_done){
-    // initialise random number generator
-    ranlux_init();
+  if (init_done) return;
 
-    // do not do this again
-    init_done=true;
+  // initialise random number generator
+  ranlux_init();
 
-    // print the banner
-    if (_banner_ostr != 0){
-//      (*_banner_ostr) << "#ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo" << endl;
-//      (*_banner_ostr) << "#                    SISCone   version " << setw(28) << left << siscone_version() << "o" << endl;
-//      (*_banner_ostr) << "#              http://projects.hepforge.org/siscone                o" << endl;
-//      (*_banner_ostr) << "#                                                                  o" << endl;
-//      (*_banner_ostr) << "# This is SISCone: the Seedless Infrared Safe Cone Jet Algorithm   o" << endl;
-//      (*_banner_ostr) << "# SISCone was written by Gavin Salam and Gregory Soyez             o" << endl;
-//      (*_banner_ostr) << "# It is released under the terms of the GNU General Public License o" << endl;
-//      (*_banner_ostr) << "#                                                                  o" << endl;
-//      (*_banner_ostr) << "# A description of the algorithm is available in the publication   o" << endl;
-//      (*_banner_ostr) << "# JHEP 05 (2007) 086 [arXiv:0704.0292 (hep-ph)].                   o" << endl;
-//      (*_banner_ostr) << "# Please cite it if you use SISCone.                               o" << endl;
-//      (*_banner_ostr) << "#ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo" << endl;
-//      (*_banner_ostr) << endl;
-//
-//      _banner_ostr->flush();
-    }
+  // do not do this again
+  init_done=true;
+
+  // print the banner
+  if (_banner_ostr != 0){
+    ios::fmtflags flags_to_restore(_banner_ostr->flags());
+
+    (*_banner_ostr) << "#ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo" << endl;
+    (*_banner_ostr) << "#                    SISCone   version " << setw(28) << left << siscone_version() << "o" << endl;
+    (*_banner_ostr) << "#              http://projects.hepforge.org/siscone                o" << endl;
+    (*_banner_ostr) << "#                                                                  o" << endl;
+    (*_banner_ostr) << "# This is SISCone: the Seedless Infrared Safe Cone Jet Algorithm   o" << endl;
+    (*_banner_ostr) << "# SISCone was written by Gavin Salam and Gregory Soyez             o" << endl;
+    (*_banner_ostr) << "# It is released under the terms of the GNU General Public License o" << endl;
+    (*_banner_ostr) << "#                                                                  o" << endl;
+    (*_banner_ostr) << "# A description of the algorithm is available in the publication   o" << endl;
+    (*_banner_ostr) << "# JHEP 05 (2007) 086 [arXiv:0704.0292 (hep-ph)].                   o" << endl;
+    (*_banner_ostr) << "# Please cite it if you use SISCone.                               o" << endl;
+    (*_banner_ostr) << "#ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo" << endl;
+    (*_banner_ostr) << endl;
+
+    _banner_ostr->flush();
+    _banner_ostr->flags(flags_to_restore);
   }
 }
 
@@ -285,12 +274,12 @@ void Csiscone::_initialise_if_needed(){
 /* 
  * return SISCone package name.
  * This is nothing but "SISCone", it is a replacement to the
- * PACKAGE_NAME string defined in config.h and which is not
- * public by default.
+ * SISCONE_PACKAGE_NAME string defined in config.h and which is not
+ * guaranteed to be public.
  * return the SISCone name as a string
  */
 string siscone_package_name(){
-  return PACKAGE_NAME;
+  return SISCONE_PACKAGE_NAME;
 }
 
 /* 
@@ -299,7 +288,7 @@ string siscone_package_name(){
  *        (alpha, beta, devel) to mention stability status
  */
 string siscone_version(){
-  return VERSION;
+  return SISCONE_VERSION;
 }
 
 }

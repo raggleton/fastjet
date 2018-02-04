@@ -2,7 +2,7 @@
 #define __FASTJET_LAZYTILING9ALT_HH__
 
 //FJSTARTHEADER
-// $Id: LazyTiling9Alt.hh 3477 2014-07-29 14:34:39Z salam $
+// $Id: LazyTiling9Alt.hh 3807 2015-02-20 11:16:55Z soyez $
 //
 // Copyright (c) 2005-2014, Matteo Cacciari, Gavin P. Salam and Gregory Soyez
 //
@@ -37,7 +37,6 @@
 
 FASTJET_BEGIN_NAMESPACE      // defined in fastjet/internal/base.hh
 
-//----- Copy of fix from fastjet authors fastjet-3.1.2-devel-20150224-rev3823.tar
 /// Rounding errors in the Lazy strategies may cause the following
 /// problem: when browsing tiles in the vicinity of the particles
 /// being clustered in order to decide which of these tiles may

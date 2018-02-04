@@ -36,7 +36,6 @@
 #include "fastjet/ClusterSequence.hh"
 #include "fastjet/internal/LazyTiling9Alt.hh"
 
-
 FASTJET_BEGIN_NAMESPACE      // defined in fastjet/internal/base.hh
 
 class TiledJet3 {
@@ -99,9 +98,7 @@ public:
   /// risk (this is an internal part of fastjet).In a similar spirit,
   /// the interface to access this valus might also change in a future
   /// release of FastJet.
-  // CMS change: change to std::atomic for thread safety
-  // Change not endorsed by fastjet collaboration 
-  //static double ghost_pt2_threshold;
+  static double ghost_pt2_threshold;
 
 protected:
   ClusterSequence & _cs;

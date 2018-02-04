@@ -1,5 +1,5 @@
 //FJSTARTHEADER
-// $Id: LazyTiling9SeparateGhosts.cc 3596 2014-08-12 15:27:19Z soyez $
+// $Id: LazyTiling9SeparateGhosts.cc 3807 2015-02-20 11:16:55Z soyez $
 //
 // Copyright (c) 2005-2014, Matteo Cacciari, Gavin P. Salam and Gregory Soyez
 //
@@ -31,24 +31,11 @@
 #include "fastjet/internal/LazyTiling9SeparateGhosts.hh"
 #include "fastjet/internal/TilingExtent.hh"
 #include <iomanip>
-
-
-#if __cplusplus >= 201103L
-#include <atomic>
-#endif
-
-
 using namespace std;
 
 FASTJET_BEGIN_NAMESPACE      // defined in fastjet/internal/base.hh
 
-#if __cplusplus >= 201103L
-std::atomic<double> ghost_pt2_threshold(1e-100);
-#else
-double ghost_pt2_threshold = 1e-100;
-#endif
-
-
+double LazyTiling9SeparateGhosts::ghost_pt2_threshold = 1e-100; 
 
 LazyTiling9SeparateGhosts::LazyTiling9SeparateGhosts(ClusterSequence & cs) :
   _cs(cs), _jets(cs.jets())
@@ -246,18 +233,18 @@ void LazyTiling9SeparateGhosts::_bj_remove_from_tiles(TiledJet3 * const jet) {
 //----------------------------------------------------------------------
 /// output the contents of the tiles
 void LazyTiling9SeparateGhosts::_print_tiles(TiledJet3 * briefjets ) const {
-  // for (vector<Tile3>::const_iterator tile = _tiles.begin(); 
-  //      tile < _tiles.end(); tile++) {
-  //   (*_safe_cout) << "Tile " << tile - _tiles.begin()<<" = ";
-  //   vector<int> list;
-  //   for (TiledJet3 * jetI = tile->head; jetI != NULL; jetI = jetI->next) {
-  //     list.push_back(jetI-briefjets);
-  //     //(*_safe_cout) <<" "<<jetI-briefjets;
-  //   }
-  //   sort(list.begin(),list.end());
-  //   for (unsigned int i = 0; i < list.size(); i++) {(*_safe_cout) <<" "<<list[i];}
-  //   (*_safe_cout) <<"\n";
-  // }
+  for (vector<Tile3>::const_iterator tile = _tiles.begin(); 
+       tile < _tiles.end(); tile++) {
+    cout << "Tile " << tile - _tiles.begin()<<" = ";
+    vector<int> list;
+    for (TiledJet3 * jetI = tile->head; jetI != NULL; jetI = jetI->next) {
+      list.push_back(jetI-briefjets);
+      //cout <<" "<<jetI-briefjets;
+    }
+    sort(list.begin(),list.end());
+    for (unsigned int i = 0; i < list.size(); i++) {cout <<" "<<list[i];}
+    cout <<"\n";
+  }
 }
 
 
@@ -310,16 +297,15 @@ inline void LazyTiling9SeparateGhosts::_add_untagged_neighbours_to_tile_union_us
   
   for (Tile3 ** near_tile = tile.begin_tiles; near_tile != tile.end_tiles; near_tile++){
     if ((*near_tile)->tagged) continue;
-    //----- Copy of fix from fastjet authors fastjet-3.1.2-devel-20150224-rev3823.tar
     // here we are not allowed to miss a tile due to some rounding
     // error. We therefore allow for a margin of security
-    double dist = _distance_to_tile(jet, *near_tile) - tile_edge_security_margin;    
-    // (*_safe_cout) << "      max info looked at tile " << *near_tile - &_tiles[0] 
+    double dist = _distance_to_tile(jet, *near_tile) - tile_edge_security_margin;
+    // cout << "      max info looked at tile " << *near_tile - &_tiles[0] 
     // 	 << ", dist = " << dist << " " << (*near_tile)->max_NN_dist
     // 	 << endl;
     if (dist > (*near_tile)->max_NN_dist) continue;
 
-    // (*_safe_cout) << "      max info tagged tile " << *near_tile - &_tiles[0] << endl;
+    // cout << "      max info tagged tile " << *near_tile - &_tiles[0] << endl;
     (*near_tile)->tagged = true;
     // get the tile number
     tile_union[n_near_tiles] = *near_tile - & _tiles[0];
@@ -766,7 +752,7 @@ void LazyTiling9SeparateGhosts::run() {
     }
 
     // deal with jets whose minheap entry needs updating
-    //if (verbose) (*_safe_cout) << "  jets whose NN was modified: " << endl;
+    //if (verbose) cout << "  jets whose NN was modified: " << endl;
     while (jets_for_minheap.size() > 0) {
       TiledJet3 * jetI = jets_for_minheap.back(); 
       jets_for_minheap.pop_back();

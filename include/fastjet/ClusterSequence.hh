@@ -2,7 +2,7 @@
 #define __FASTJET_CLUSTERSEQUENCE_HH__
 
 //FJSTARTHEADER
-// $Id: ClusterSequence.hh 3709 2014-09-29 13:19:11Z soyez $
+// $Id: ClusterSequence.hh 4154 2016-07-20 16:20:48Z soyez $
 //
 // Copyright (c) 2005-2014, Matteo Cacciari, Gavin P. Salam and Gregory Soyez
 //
@@ -48,6 +48,8 @@
 #include "fastjet/FunctionOfPseudoJet.hh"
 #include "fastjet/ClusterSequenceStructure.hh"
 
+#include "fastjet/internal/deprecated.hh"
+
 FASTJET_BEGIN_NAMESPACE      // defined in fastjet/internal/base.hh
 
 
@@ -79,6 +81,9 @@ class ClusterSequence {
     transfer_from_sequence(cs);
   }
 
+  /// explicit assignment operator for a ClusterSequence
+  ClusterSequence & operator=(const ClusterSequence & cs);
+  
   // virtual ClusterSequence destructor, in case any derived class
   // thinks of needing a destructor at some point
   virtual ~ClusterSequence (); //{}
@@ -361,9 +366,12 @@ class ClusterSequence {
   /// 
   /// As of FJ v3.1, this is deprecated, in line with the deprecation
   /// of auto_ptr in C++11
-  inline void plugin_associate_extras(std::auto_ptr<Extras> extras_in) {
+#ifdef FASTJET_HAVE_AUTO_PTR_INTERFACE
+  FASTJET_DEPRECATED_MSG("Please use ClusterSequence::plugin_associate_extras(Extras * extras_in)) instead")
+  inline void plugin_associate_extras(std::auto_ptr<Extras> extras_in){
     _extras.reset(extras_in.release());
   }
+#endif
 
   /// returns true when the plugin is allowed to run the show.
   inline bool plugin_activated() const {return _plugin_activated;}
@@ -553,7 +561,7 @@ public:
   /// by default. This requirement reflects the spirit of
   /// clause 2c of the GNU Public License (v2), under which
   /// FastJet and its plugins are distributed.
-  static void set_fastjet_banner_stream(std::ostream * ostr);
+  static void set_fastjet_banner_stream(std::ostream * ostr) {_fastjet_banner_ostr = ostr;}
   //  [this line must be left as is to hide the doxygen comment]
   /// \endcond
 
@@ -561,18 +569,13 @@ public:
   /// (cout by default). This function is used by plugins to determine
   /// where to direct their banners. Plugins should properly handle
   /// the case where the pointer is null.
-  static std::ostream * fastjet_banner_stream();
+  static std::ostream * fastjet_banner_stream() {return _fastjet_banner_ostr;}
 
 private:
   /// \cond internal_doc
 
-  // CMS change: _fastjet_banner_ostr is no longer a class static
-  //  moved to file static since it was changed to std::atomic
-  //  and we still need to allow this header to be parsed by
-  //  non C++11 compilers.
-  // Change not endorsed by fastjet collaboration 
   /// contains the actual stream to use for banners 
-  //static std::ostream* _fastjet_banner_ostr;
+  static std::ostream * _fastjet_banner_ostr;
 
   /// \endcond
 
@@ -734,9 +737,10 @@ protected:
   // NSqrtN method for C/A
   void _fast_NsqrtN_cluster();
 
-  void _add_step_to_history(const int step_number, const int parent1, 
-			       const int parent2, const int jetp_index,
-			       const double dij);
+  void _add_step_to_history( //const int step_number,
+                            const int parent1, 
+			    const int parent2, const int jetp_index,
+			    const double dij);
 
   /// internal routine associated with the construction of the unique
   /// history order (following children in the tree)
@@ -760,17 +764,11 @@ protected:
   			      const DynamicNearestNeighbours * DNN);
 
 
-  // CMS change: _first_time is no longer a class static
-  //  moved to file static since it was changed to std::atomic
-  //  and we still need to allow this header to be parsed by
-  //  non C++11 compilers.
-  // Change not endorsed by fastjet collaboration 
   /// will be set by default to be true for the first run
-  //static bool _first_time;
+  static bool _first_time;
 
   /// manage warnings related to exclusive jets access
   static LimitedWarning _exclusive_warnings;
-
 
   /// the limited warning member for notification of user that 
   /// their requested strategy has been overridden (usually because
@@ -1001,6 +999,7 @@ inline unsigned int ClusterSequence::n_particles() const {return _initial_n;}
 //----------------------------------------------------------------------
 // implementation of JetDefinition::operator() is here to avoid nasty
 // issues of order of implementations and includes
+#ifndef __CINT__
 template<class L>
 std::vector<PseudoJet> JetDefinition::operator()(const std::vector<L> & particles) const {
   // create a new cluster sequence
@@ -1025,7 +1024,7 @@ std::vector<PseudoJet> JetDefinition::operator()(const std::vector<L> & particle
 
   return jets;
 }
-
+#endif // __CINT__
 
 
 //----------------------------------------------------------------------
@@ -1046,9 +1045,17 @@ template <class J> inline void ClusterSequence::_bj_set_jetinfo(
 //----------------------------------------------------------------------
 template <class J> inline double ClusterSequence::_bj_dist(
                 const J * const jetA, const J * const jetB) const {
+  //#define FASTJET_NEW_DELTA_PHI
+#ifndef FASTJET_NEW_DELTA_PHI
+  //GPS+MC old version of Delta phi calculation
   double dphi = std::abs(jetA->phi - jetB->phi);
   double deta = (jetA->eta - jetB->eta);
   if (dphi > pi) {dphi = twopi - dphi;}
+#else 
+  //GPS+MC testing for 2015-02-faster-deltaR2
+  double dphi = pi-std::abs(pi-std::abs(jetA->phi - jetB->phi));
+  double deta = (jetA->eta - jetB->eta);
+#endif 
   return dphi*dphi + deta*deta;
 }
 

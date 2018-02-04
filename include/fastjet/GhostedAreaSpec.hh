@@ -1,5 +1,5 @@
 //FJSTARTHEADER
-// $Id: GhostedAreaSpec.hh 3433 2014-07-23 08:17:03Z salam $
+// $Id: GhostedAreaSpec.hh 4074 2016-03-08 09:09:25Z soyez $
 //
 // Copyright (c) 2005-2014, Matteo Cacciari, Gavin P. Salam and Gregory Soyez
 //
@@ -37,6 +37,8 @@
 #include "fastjet/PseudoJet.hh"
 #include "fastjet/internal/BasicRandom.hh"
 #include "fastjet/Selector.hh"
+#include "fastjet/LimitedWarning.hh"
+#include "fastjet/internal/deprecated.hh"
 
 // 
 #define STATIC_GENERATOR 1
@@ -171,6 +173,7 @@ public:
   ///   sqrt(area)/(2*maxrap).
   ///
   /// FJ2 placement is now deprecated.
+  FASTJET_DEPRECATED_MSG("This is deprecated since we strongly recomment to use the new ghost placement instead")
   void set_fj2_placement(bool  val);
 
   /// return nphi (ghosts layed out (-nrap, 0..nphi-1), (-nrap+1,0..nphi-1),
@@ -178,21 +181,19 @@ public:
   inline int nphi() const {return _nphi;}
   inline int nrap() const {return _nrap;}
 
-  //CMS change: can no longer be inlined
-  // Change not endorsed by fastjet collaboration
   /// get all relevant information about the status of the 
   /// random number generator, so that it can be reset subsequently
   /// with set_random_status.
-  void get_random_status(std::vector<int> & __iseed) const;
+  inline void get_random_status(std::vector<int> & __iseed) const {
+    _random_generator.get_status(__iseed);}
 
-  //CMS change: can no longer be inlined
-  // Change not endorsed by fastjet collaboration
   /// set the status of the random number generator, as obtained
   /// previously with get_random_status. Note that the random
   /// generator is a static member of the class, i.e. common to all
   /// instances of the class --- so if you modify the random for this
   /// instance, you modify it for all instances.
-  void set_random_status(const std::vector<int> & __iseed);
+  inline void set_random_status(const std::vector<int> & __iseed) {
+    _random_generator.set_status(__iseed);}
   
   inline void checkpoint_random() {get_random_status(_random_checkpoint);}
   inline void restore_checkpoint_random() {set_random_status(_random_checkpoint);}
@@ -207,10 +208,9 @@ public:
   /// very deprecated public access to a random number 
   /// from the internal generator
   inline double random_at_own_risk() const {return _our_rand();}
-  //CMS change: can no longer be inlined
-  // Change not endorsed by fastjet collaboration
   /// very deprecated public access to the generator itself
-  BasicRandom<double> & generator_at_own_risk() const;
+  inline BasicRandom<double> & generator_at_own_risk() const {
+    return _random_generator;}
 
 private:
   
@@ -232,16 +232,12 @@ private:
 
 
   std::vector<int> _random_checkpoint;
-  //CMS change: _random_generator no longer class static since
-  // thread safety requires it to be thread_local but the header
-  // needs to be parsed by non C++11 compilers 
-  // Change not endorsed by fastjet collaboration
-  //static BasicRandom<double> _random_generator;
+  static BasicRandom<double> _random_generator;
   //mutable BasicRandom<double> _random_generator;
 
-  //CMS change: no longer inlined
-  // Change not endorsed by fastjet collaboration
-  double _our_rand() const;
+  static LimitedWarning _warn_fj2_placement_deprecated;
+
+  inline double _our_rand() const {return _random_generator();}
   
 };
 

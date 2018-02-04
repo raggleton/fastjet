@@ -146,19 +146,14 @@ public:
   unsigned int phi_range;     
 
   // extremal value for eta
-  // CMS change: eta_min, eta_max are no longer class statics
-  //  moved to file static since they were changed to thread_local
-  //  and we still need to allow this header to be parsed by
-  //  non C++11 compilers.
-  // Change not endorsed by fastjet collaboration 
-  //static double eta_min;  ///< minimal value for eta
-  //static double eta_max;  ///< maximal value for eta
-  static double& eta_min();
-  static double& eta_max();
+  static double eta_min;  ///< minimal value for eta
+  static double eta_max;  ///< maximal value for eta
 
 private:
   /// return the cell index corrsponding to an eta value
-  inline unsigned int get_eta_cell(double eta);
+  inline unsigned int get_eta_cell(double eta){
+    return (unsigned int) (1 << ((int) (32*((eta-eta_min)/(eta_max-eta_min)))));
+  }
 
   /// return the cell index corrsponding to a phi value
   inline unsigned int get_phi_cell(double phi){
